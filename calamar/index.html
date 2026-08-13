@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Calamar Flats — Painel Operacional</title>
+  <meta name="description" content="Painel operacional para gerenciamento do Calamar Flats em Paraty — Reservas, limpeza, manutenção, tarefas e comunicação com equipe.">
+  <meta name="theme-color" content="#0F3460">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Calamar Flats">
+
+  <!-- Fontes Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TELA DE LOGIN                                                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="https://irp.cdn-website.com/f3e5d67f/dms3rep/multi/favicon-calamaris.png" alt="Calamar Flats Logo" style="width:64px; height:64px; object-fit:contain; margin: 0 auto 12px; display:block;">
+        <h1>Calamar Flats</h1>
+        <p>Painel Operacional · Paraty</p>
+      </div>
+
+      <form id="form-login" novalidate>
+        <div class="form-group">
+          <label for="login-perfil">Perfil de acesso</label>
+          <select id="login-perfil" class="form-select" required>
+            <option value="gerente">👔 Gerente</option>
+            <option value="recepcao">🛎 Recepção</option>
+            <option value="limpeza">🧹 Limpeza</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="login-senha">Senha</label>
+          <input type="password" id="login-senha" class="form-input"
+                 placeholder="Digite sua senha" required autocomplete="current-password">
+        </div>
+
+        <p id="login-erro" class="login-erro" aria-live="polite"></p>
+
+        <button type="submit" class="btn-login">Entrar no painel</button>
+      </form>
+
+      <p class="login-dica">
+        🔐 Demo: Gerente / <code>gerente123</code> &nbsp;|&nbsp;
+        Recepção / <code>recepcao123</code> &nbsp;|&nbsp;
+        Limpeza / <code>limpeza123</code>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- APLICAÇÃO PRINCIPAL                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="app" class="app hidden">
+
+    <!-- ── Cabeçalho mobile ─────────────────────────────────────────────── -->
+    <header class="mobile-header" role="banner">
+      <button id="btn-menu" class="btn-menu" aria-label="Abrir menu" aria-expanded="false">☰</button>
+      <div class="mobile-header-logo">
+        <img src="https://irp.cdn-website.com/f3e5d67f/dms3rep/multi/favicon-calamaris.png" alt="Calamar Flats Logo" style="width:28px; height:28px; object-fit:contain;">
+        <span>Calamar Flats</span>
+      </div>
+    </header>
+
+    <!-- ── Sidebar (desktop) ────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Menu principal">
+
+      <!-- Logo -->
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <img src="https://irp.cdn-website.com/f3e5d67f/dms3rep/multi/favicon-calamaris.png" alt="Calamar Flats Logo" class="sidebar-logo-img" style="width:36px; height:36px; object-fit:contain;">
+          <div class="sidebar-logo-text">
+            <h2>Calamar Flats</h2>
+            <span>Painel Operacional</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navegação -->
+      <nav class="sidebar-nav">
+        <span class="nav-section-title">Principal</span>
+
+        <button class="nav-link ativo" data-rota="dashboard" id="nav-dashboard" aria-current="page">
+          <span class="nav-icon">🏠</span>
+          Painel do Dia
+        </button>
+
+        <button class="nav-link" data-rota="reservas" id="nav-reservas">
+          <span class="nav-icon">📋</span>
+          Reservas
+        </button>
+
+        <button class="nav-link" data-rota="limpeza" id="nav-limpeza">
+          <span class="nav-icon">🧹</span>
+          Limpeza
+        </button>
+
+        <button class="nav-link" data-rota="manutencao" id="nav-manutencao">
+          <span class="nav-icon">🔧</span>
+          Manutenção
+        </button>
+
+        <span class="nav-section-title">Gestão</span>
+
+        <button class="nav-link" data-rota="tarefas" id="nav-tarefas">
+          <span class="nav-icon">✅</span>
+          Tarefas
+        </button>
+
+        <button class="nav-link" data-rota="financeiro" id="nav-financeiro">
+          <span class="nav-icon">💵</span>
+          Financeiro
+        </button>
+
+        <button class="nav-link" data-rota="tarifas" id="nav-tarifas">
+          <span class="nav-icon">📈</span>
+          Tarifas
+        </button>
+
+        <button class="nav-link" data-rota="marketing" id="nav-marketing">
+          <span class="nav-icon">📱</span>
+          Marketing
+        </button>
+
+        <button class="nav-link" data-rota="mensagens" id="nav-mensagens">
+          <span class="nav-icon">💬</span>
+          Mensagens
+        </button>
+
+        <button class="nav-link" data-rota="relatorio" id="nav-relatorio">
+          <span class="nav-icon">📊</span>
+          Relatório
+        </button>
+
+        <span class="nav-section-title" data-permissao="tudo">Sistema</span>
+
+        <button class="nav-link" data-rota="historico" id="nav-historico" data-permissao="tudo">
+          <span class="nav-icon">📜</span>
+          Histórico
+        </button>
+
+        <!-- Backup e Restore (somente gerente) -->
+        <div data-permissao="tudo" style="margin-top: 8px; padding: 0 4px;">
+          <button class="nav-link" id="btn-exportar-backup" onclick="exportarBackup()" style="font-size:0.82rem;">
+            <span class="nav-icon">💾</span>
+            Exportar Backup
+          </button>
+          <label class="nav-link" style="cursor:pointer; font-size:0.82rem;">
+            <span class="nav-icon">📂</span>
+            Importar Backup
+            <input type="file" accept=".json" style="display:none"
+                   onchange="importarBackup(this)" id="input-importar">
+          </label>
+          <button class="nav-link" onclick="resetarDados()" style="font-size:0.82rem; color: rgba(255,100,100,0.8);">
+            <span class="nav-icon">🔄</span>
+            Resetar Demo
+          </button>
+        </div>
+      </nav>
+
+      <!-- Rodapé com usuário e logout -->
+      <div class="sidebar-footer">
+        <div id="usuario-info"></div>
+        <button class="btn-logout" id="btn-logout" aria-label="Sair do sistema">
+          ← Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Conteúdo principal ────────────────────────────────────────────── -->
+    <main class="main-content" id="main-content" role="main">
+      <!-- Cabeçalho oculto para impressão de relatórios -->
+      <div class="print-header">
+        <h1>🦑 Calamar Flats — Relatório Operacional</h1>
+        <p id="print-periodo"></p>
+      </div>
+
+      <!-- Container das páginas (preenchido pelo roteador) -->
+      <div id="page-container" role="region" aria-live="polite" aria-label="Conteúdo da página">
+        <div class="loading-page"><div class="spinner"></div></div>
+      </div>
+    </main>
+
+    <!-- ── Bottom Navigation (mobile) ────────────────────────────────────── -->
+    <nav class="bottom-nav" id="bottom-nav" role="navigation" aria-label="Navegação rápida">
+      <div class="bottom-nav-items">
+        <button class="bottom-nav-item ativo" data-rota="dashboard">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Painel</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="reservas">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Reservas</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="limpeza">
+          <span class="nav-icon">🧹</span>
+          <span class="nav-label">Limpeza</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="manutencao">
+          <span class="nav-icon">🔧</span>
+          <span class="nav-label">Manutenção</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="tarefas">
+          <span class="nav-icon">✅</span>
+          <span class="nav-label">Tarefas</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="financeiro">
+          <span class="nav-icon">💵</span>
+          <span class="nav-label">Finanças</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="tarifas">
+          <span class="nav-icon">📈</span>
+          <span class="nav-label">Tarifas</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="marketing">
+          <span class="nav-icon">📱</span>
+          <span class="nav-label">Mkt</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="mensagens">
+          <span class="nav-icon">💬</span>
+          <span class="nav-label">Msg</span>
+        </button>
+        <button class="bottom-nav-item" data-rota="relatorio">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Relatório</span>
+        </button>
+      </div>
+    </nav>
+
+  </div><!-- /#app -->
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL (reutilizável por todos os módulos)                               -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true"></div>
+  <div id="modal-container" class="modal-container hidden"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TOAST NOTIFICATIONS                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SCRIPTS (ordem de dependências importa)                                 -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/reservas.js"></script>
+  <script src="js/limpeza.js"></script>
+  <script src="js/manutencao.js"></script>
+  <script src="js/tarefas.js"></script>
+  <script src="js/financeiro.js"></script>
+  <script src="js/tarifas.js"></script>
+  <script src="js/marketing.js"></script>
+  <script src="js/mensagens.js"></script>
+  <script src="js/relatorio.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Script auxiliar para funções não cobertas pelo app.js -->
+  <script>
+    /** Reseta para dados de demonstração */
+    function resetarDados() {
+      if (!confirm('Isso apagará todos os dados e recarregará os dados de demonstração.\nTem certeza?')) return;
+      DadosDemonstracao.resetar();
+      toast('Dados de demonstração restaurados!', 'sucesso');
+      setTimeout(() => navegar('dashboard'), 500);
+    }
+  </script>
+</body>
+</html>
