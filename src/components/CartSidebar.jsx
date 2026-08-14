@@ -304,16 +304,43 @@ export const CartSidebar = memo(({
           </span>
         </div>
 
-        <button onClick={handleCheckout} className="btn-premium btn-success-gradient checkout-btn">
-          <CheckCircle size={18} /> {activeOrderId ? 'Confirmar Lançamento' : 'Salvar Comanda'}
+        <button
+          onClick={handleCheckout}
+          disabled={cart.length === 0 && !activeOrderId}
+          className="btn-premium btn-success-gradient checkout-btn"
+          style={{
+            width: '100%', padding: '0.85rem 1rem', fontSize: '1rem',
+            borderRadius: '12px', boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)',
+            opacity: (cart.length === 0 && !activeOrderId) ? 0.5 : 1
+          }}
+        >
+          <CheckCircle size={20} /> {activeOrderId ? 'Confirmar Lançamento' : 'Salvar e Abrir Comanda'}
         </button>
 
-        <div className="print-actions">
-          <button className="btn-premium print-btn">
-            <Printer size={15} /> Bar
+        <div className="print-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.25rem' }}>
+          <button
+            className="btn-premium"
+            onClick={() => window.print()}
+            title="Imprimir Prévia do Bar"
+            style={{
+              background: 'var(--panel-bg)', border: '1.5px solid var(--border)',
+              color: 'var(--text-main)', padding: '0.55rem', fontSize: '0.82rem',
+              justifyContent: 'center', borderRadius: '10px'
+            }}
+          >
+            <Printer size={15} style={{ color: 'var(--primary)' }} /> Via Bar
           </button>
-          <button className="btn-premium print-btn">
-            <Printer size={15} /> Cozinha
+          <button
+            className="btn-premium"
+            onClick={() => window.print()}
+            title="Imprimir Prévia da Cozinha"
+            style={{
+              background: 'var(--panel-bg)', border: '1.5px solid var(--border)',
+              color: 'var(--text-main)', padding: '0.55rem', fontSize: '0.82rem',
+              justifyContent: 'center', borderRadius: '10px'
+            }}
+          >
+            <UtensilsCrossed size={15} style={{ color: 'var(--secondary)' }} /> Via Cozinha
           </button>
         </div>
       </div>

@@ -229,34 +229,42 @@ export function PDV() {
         {/* Barra Superior de Ações de Caixa */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0.75rem 1rem', background: 'var(--panel-bg)', borderRadius: '14px',
-          border: '1.5px solid var(--border)', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem'
+          padding: '0.75rem 1.25rem', background: 'var(--panel-bg-glass)', borderRadius: '16px',
+          border: '1.5px solid var(--border)', flexWrap: 'wrap', gap: '0.75rem',
+          backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{
-              width: '34px', height: '34px', borderRadius: '10px',
+              width: '38px', height: '38px', borderRadius: '12px',
               background: 'var(--success-light)', color: 'var(--success)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(16,185,129,0.15)'
             }}>
               <DollarSign size={20} />
             </div>
             <div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', letterSpacing: '0.5px' }}>
                 Gaveta (Espécie)
               </span>
-              <strong style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)' }}>
+              <strong style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-main)' }}>
                 {expectedCash.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </strong>
             </div>
           </div>
 
-          <button
-            onClick={() => setIsCashModalOpen(true)}
-            className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', fontSize: '0.82rem' }}
-          >
-            <ArrowUpRight size={16} /> Sangria / Suprimento
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              onClick={() => setIsCashModalOpen(true)}
+              className="btn-premium"
+              style={{
+                background: 'var(--panel-bg)', border: '1.5px solid var(--border)',
+                color: 'var(--text-main)', padding: '0.45rem 0.85rem', fontSize: '0.82rem',
+                borderRadius: '10px'
+              }}
+            >
+              <ArrowUpRight size={16} style={{ color: 'var(--primary)' }} /> Sangria / Suprimento
+            </button>
+          </div>
         </div>
 
         <CategoryFilter
