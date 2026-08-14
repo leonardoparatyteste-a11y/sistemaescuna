@@ -1,13 +1,10 @@
 ---
 deployment:
   tasks:
+    # Copia para dentro de public_html/sistemaescuna (acesso via aventuraturismoparaty.com.br/sistemaescuna)
     - export D1=/home/xx17psecd7c6/public_html/sistemaescuna
+    # Copia para dentro da pasta do subdominio (caso subdominio aponte para pasta propria)
     - export D2=/home/xx17psecd7c6/sistema.aventuraturismoparaty.com.br/sistemaescuna
-    - export D3=/home/xx17psecd7c6/public_html/sistema.aventuraturismoparaty.com.br/sistemaescuna
-    - /bin/mkdir -p $D1 $D2 $D3
-    - /bin/cp -R dist/* $D1/
-    - /bin/cp -R dist/* $D2/
-    - /bin/cp -R dist/* $D3/
-    - /bin/cp dist/.htaccess $D1/.htaccess
-    - /bin/cp dist/.htaccess $D2/.htaccess
-    - /bin/cp dist/.htaccess $D3/.htaccess
+    - /bin/mkdir -p $D1 $D2
+    - /bin/cp -R dist/. $D1/
+    - /bin/cp -R dist/. $D2/
