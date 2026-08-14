@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { exportToCSV, getPeriodRange } from '../utils/exportUtils';
 import { calculateCashDrawerBalance } from '../utils/cashMovementUtils';
+import { PieChart, BarChart, HorizontalBarChart } from '../components/Charts';
 
 export function Reports() {
   const [period, setPeriod] = useState('today'); // 'today' | '7days' | 'month' | 'custom'
@@ -410,32 +411,43 @@ export function Reports() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-            
-            {/* Detalhamento de Forma de Pagamento */}
-            <div className="glass-panel" style={{ margin: 0 }}>
-              <h2 style={{ margin: '0 0 1rem 0', fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={18} style={{ color: 'var(--primary)' }} /> Formas de Pagamento Recebidas
-              </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {Object.entries(paymentBreakdown).map(([method, amount]) => {
-                  const percentage = totalRevenue > 0 ? (amount / totalRevenue) * 100 : 0;
-                  return (
-                    <div key={method} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                        <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{method}</span>
-                        <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{fmtCurrency(amount)} ({percentage.toFixed(1)}%)</span>
-                      </div>
-                      <div style={{ width: '100%', height: '8px', borderRadius: '99px', background: 'var(--border)', overflow: 'hidden' }}>
-                        <div style={{ width: `${percentage}%`, height: '100%', background: 'var(--primary)', borderRadius: '99px' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* Gráficos Visuais */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+
+            {/* Pizza: Bar vs Bilheteria */}
+            <div className="glass-panel" style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <PieChart
+                title="Composição da Receita"
+                donut
+                data={[
+                  { label: 'Bar & Comandas', value: barRevenue, formatted: fmtCurrency(barRevenue) },
+                  { label: 'Bilheteria', value: ticketRevenue, formatted: fmtCurrency(ticketRevenue) },
+                  { label: 'Taxa Serviço', value: totalServiceTax, formatted: fmtCurrency(totalServiceTax) },
+                  { label: 'Couvert', value: totalCouvert, formatted: fmtCurrency(totalCouvert) },
+                ].filter(d => d.value > 0)}
+              />
             </div>
 
-            {/* Resumo de Fechamento de Caixa */}
+            {/* Barras: Formas de Pagamento */}
+            <div className="glass-panel" style={{ margin: 0 }}>
+              <h2 style={{ margin: '0 0 1.25rem 0', fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShieldCheck size={18} style={{ color: 'var(--primary)' }} /> Formas de Pagamento
+              </h2>
+              <div style={{ overflowX: 'auto' }}>
+                <BarChart
+                  color={['hsl(215,100%,60%)','hsl(142,71%,45%)','hsl(36,100%,50%)','hsl(258,80%,65%)','hsl(0,85%,60%)']}
+                  data={Object.entries(paymentBreakdown)
+                    .filter(([, v]) => v > 0)
+                    .map(([method, amount]) => ({ label: method, value: amount }))}
+                  formatValue={v => fmtCurrency(v).replace('R$\u00a0', 'R$')}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+
+            {/* Resumo do Caixa */}
             <div className="glass-panel" style={{ margin: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <h2 style={{ margin: '0 0 1rem 0', fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -460,11 +472,33 @@ export function Reports() {
                   </div>
                 </div>
               </div>
-
               <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
                 <button onClick={handlePrint} className="btn btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <Printer size={18} /> Imprimir Comprovante Z
                 </button>
+              </div>
+            </div>
+
+            {/* Detalhamento de Formas de Pagamento (lista) */}
+            <div className="glass-panel" style={{ margin: 0 }}>
+              <h2 style={{ margin: '0 0 1rem 0', fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShieldCheck size={18} style={{ color: 'var(--primary)' }} /> Detalhamento de Pagamentos
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {Object.entries(paymentBreakdown).map(([method, amount]) => {
+                  const percentage = totalRevenue > 0 ? (amount / totalRevenue) * 100 : 0;
+                  return (
+                    <div key={method} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{method}</span>
+                        <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{fmtCurrency(amount)} ({percentage.toFixed(1)}%)</span>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', borderRadius: '99px', background: 'var(--border)', overflow: 'hidden' }}>
+                        <div style={{ width: `${percentage}%`, height: '100%', background: 'var(--primary)', borderRadius: '99px', transition: 'width 0.6s ease' }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -553,7 +587,7 @@ export function Reports() {
       {/* CONTEÚDO DA ABA 2: PRODUTOS E CATEGORIAS */}
       {activeTab === 'products' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>
               Ranking de Vendas por Produto
@@ -563,7 +597,36 @@ export function Reports() {
             </button>
           </div>
 
-          {/* Vendas por Categoria */}
+          {/* Gráficos de Produtos */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+
+            {/* Pizza: receita por categoria */}
+            <div className="glass-panel" style={{ margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <PieChart
+                title="Receita por Categoria"
+                data={categoryStats.map(cat => ({
+                  label: cat.category.charAt(0).toUpperCase() + cat.category.slice(1),
+                  value: cat.revenue,
+                  formatted: fmtCurrency(cat.revenue)
+                }))}
+              />
+            </div>
+
+            {/* Barras horizontais: top produtos */}
+            <div className="glass-panel" style={{ margin: 0 }}>
+              <HorizontalBarChart
+                title="Top Produtos por Faturamento"
+                data={productStats.slice(0, 8).map(p => ({
+                  label: p.name,
+                  value: p.revenue,
+                  sub: `${p.quantity} unid. vendidas`
+                }))}
+                formatValue={v => fmtCurrency(v)}
+              />
+            </div>
+          </div>
+
+          {/* Cards de Categoria */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             {categoryStats.map(cat => (
               <div key={cat.category} className="glass-panel" style={{ margin: 0, padding: '1rem' }}>
