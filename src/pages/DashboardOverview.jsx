@@ -69,6 +69,30 @@ export function DashboardOverview() {
   return (
     <div className="fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
+      {/* Quick Action Shortcuts Banner */}
+      <div className="glass-panel" style={{ margin: 0, padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: 'var(--text-main)' }}>
+            ⚓ Bem-vindo ao Capitão Gancho POS
+          </h2>
+          <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            Acesso rápido às principais operações do sistema
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button className="btn-premium btn-primary-gradient" onClick={() => window.location.hash = '#/dashboard/pdv'}>
+            <Coffee size={16} /> Abrir PDV / Bar
+          </button>
+          <button className="btn-premium btn-success-gradient" onClick={() => window.location.hash = '#/dashboard/orders'}>
+            <TrendingUp size={16} /> Ver Comandas
+          </button>
+          <button className="btn-premium" onClick={() => window.location.hash = '#/dashboard/reports'}
+            style={{ background: 'var(--panel-bg)', border: '1.5px solid var(--border)', color: 'var(--text-main)' }}>
+            <DollarSign size={16} style={{ color: 'var(--success)' }} /> Fechamento de Caixa
+          </button>
+        </div>
+      </div>
+
       {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
         <StatCard
@@ -178,7 +202,7 @@ export function DashboardOverview() {
                   Sincronização em Nuvem
                 </p>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  Temporariamente pausada. Todos os dados estão salvos localmente com segurança.
+                  Todos os dados estão salvos localmente com segurança.
                 </p>
               </div>
             </div>
