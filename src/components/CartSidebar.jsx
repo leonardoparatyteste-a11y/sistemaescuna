@@ -116,6 +116,24 @@ export const CartSidebar = memo(({
 
       {/* Items */}
       <div className="cart-items-container">
+        {/* Item count header */}
+        {cart.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
+              Novos Itens
+              <span style={{
+                marginLeft: '0.4rem', background: 'var(--primary)', color: 'white',
+                borderRadius: '99px', padding: '0.1rem 0.45rem', fontSize: '0.72rem', fontWeight: 900
+              }}>
+                {cart.reduce((a, i) => a + i.quantity, 0)}
+              </span>
+            </span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--text-main)' }}>
+              {cartTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+          </div>
+        )}
+
         {/* Existing Items in Comanda (Collapsible) */}
         {activeOrderId && existingItems.length > 0 && (
           <details style={{

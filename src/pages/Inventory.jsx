@@ -232,7 +232,8 @@ export function Inventory() {
 
       {/* Table card */}
       <div style={{
-        background: 'var(--panel-bg)', border: '1.5px solid var(--border)',
+        background: 'var(--panel-bg-glass)', border: '1.5px solid var(--border)',
+        backdropFilter: 'blur(12px)',
         borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--card-shadow)',
         flex: 1, display: 'flex', flexDirection: 'column',
       }}>
@@ -292,10 +293,23 @@ export function Inventory() {
                     <td style={{ textAlign: 'right', fontWeight: 800 }}>
                       {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: margin >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                        {markup.toFixed(0)}%
-                      </span>
+                    <td style={{ textAlign: 'center', minWidth: '110px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: markup >= 50 ? 'var(--success)' : markup >= 20 ? 'var(--warning)' : 'var(--danger)' }}>
+                          {markup.toFixed(0)}% mkp
+                        </span>
+                        <div style={{ width: '80px', height: '6px', borderRadius: '99px', background: 'var(--bg-color)', overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%', borderRadius: '99px',
+                            width: `${Math.min(markup, 150) / 150 * 100}%`,
+                            background: markup >= 50 ? 'var(--success)' : markup >= 20 ? 'var(--warning)' : 'var(--danger)',
+                            transition: 'width 0.5s ease'
+                          }} />
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                          R$ {margin.toFixed(2)}/un
+                        </span>
+                      </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span style={{
