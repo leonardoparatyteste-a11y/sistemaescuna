@@ -77,6 +77,21 @@ db.version(6).stores({
   });
 });
 
+db.version(7).stores({
+  users: '++id, username, password, role',
+  products: '++id, code, name, category, price, stock, [category+name]',
+  tickets: '++id, ticketNumber, passengerType, agency, price, status, date, boardingStatus, boardedAt',
+  orders: '++id, orderNumber, tableNumber, status, date, hasTax, hasCouvert, couvertValue, discountValue, discountType, paymentMethod, [status+date]',
+  orderItems: '++id, orderId, productId, quantity, price, printed',
+  sync_queue: '++id, type, action, payload, status',
+  cash_movements: '++id, type, amount, description, user, date'
+}).upgrade(tx => {
+  return tx.table('orders').toCollection().modify(order => {
+    if (order.discountValue === undefined) order.discountValue = 0;
+    if (order.discountType === undefined) order.discountType = 'value';
+  });
+});
+
 // Seed Initial Data
 db.on('populate', async () => {
   await db.users.bulkAdd([

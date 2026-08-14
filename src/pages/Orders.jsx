@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Search, CreditCard, Printer, FileSpreadsheet,
   X, CheckCircle, Clock, ChevronLeft, Users, Utensils, AlertTriangle,
-  Plus
+  Plus, Tag, ArrowRightLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -28,7 +28,11 @@ function calcTotal(subtotal, order) {
   const hasTax     = order.hasTax !== false;
   const hasCouvert = order.hasCouvert === true;
   const cv         = order.couvertValue ?? 12.00;
-  return subtotal + (hasTax ? subtotal * 0.1 : 0) + (hasCouvert ? cv : 0);
+  const discVal    = order.discountValue || 0;
+  const discType   = order.discountType || 'value';
+  const discAmount = discType === 'percent' ? (subtotal * discVal) / 100 : Math.min(subtotal, discVal);
+  const base       = Math.max(0, subtotal - discAmount);
+  return base + (hasTax ? base * 0.1 : 0) + (hasCouvert ? cv : 0);
 }
 
 /* ─── Split Bill Modal ──────────────────────────────────────── */
@@ -37,9 +41,13 @@ function SplitBillModal({ order, items, onClose, onConfirm }) {
   const hasTax        = order.hasTax !== false;
   const hasCouvert    = order.hasCouvert === true;
   const couvertAmt    = order.couvertValue ?? 12.00;
-  const taxAmount     = hasTax    ? subtotal * 0.10 : 0;
+  const discVal       = order.discountValue || 0;
+  const discType      = order.discountType || 'value';
+  const discountAmt   = discType === 'percent' ? (subtotal * discVal) / 100 : Math.min(subtotal, discVal);
+  const subAfterDisc  = Math.max(0, subtotal - discountAmt);
+  const taxAmount     = hasTax    ? subAfterDisc * 0.10 : 0;
   const couvertAmount = hasCouvert ? couvertAmt : 0;
-  const finalTotal    = subtotal + taxAmount + couvertAmount;
+  const finalTotal    = subAfterDisc + taxAmount + couvertAmount;
 
   const [people, setPeople]         = useState(2);
   const [received, setReceived]     = useState('');
@@ -191,6 +199,7 @@ function SplitBillModal({ order, items, onClose, onConfirm }) {
                   </div>
                 ))}
                 <div style={{ borderTop: '1.5px dashed var(--border)', marginTop: '0.6rem', paddingTop: '0.6rem' }}>
+                  {discountAmt > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--success)', marginBottom: '0.25rem', fontWeight: 700 }}><span>Desconto ({discType === 'percent' ? `${discVal}%` : 'R$'})</span><span>- {fmtCurrency(discountAmt)}</span></div>}
                   {hasTax && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}><span>Taxa (10%)</span><span>+ {fmtCurrency(taxAmount)}</span></div>}
                   {hasCouvert && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}><span>Couvert</span><span>+ {fmtCurrency(couvertAmount)}</span></div>}
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.4rem', borderTop: '2px solid var(--border)' }}>
@@ -278,6 +287,287 @@ function ConfirmModal(props) {
   return <SplitBillModal {...props} />;
 }
 
+/* ─── Discount Modal ────────────────────────────────────────── */
+function DiscountModal({ order, subtotal, onClose, onSave }) {
+  const [type, setType] = useState(order.discountType || 'value'); // 'value' | 'percent'
+  const [val, setVal]   = useState(order.discountValue ? String(order.discountValue) : '');
+
+  const numVal = parseFloat(val) || 0;
+  const discountAmt = type === 'percent' ? (subtotal * numVal) / 100 : Math.min(subtotal, numVal);
+
+  const handleApply = () => {
+    onSave(numVal, type);
+  };
+
+  const handleClear = () => {
+    onSave(0, 'value');
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-content" style={{ maxWidth: '420px' }}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Tag size={18} style={{ color: 'var(--primary)' }} />
+            </div>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Desconto / Cortesia</h3>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-color)', padding: 4, borderRadius: 10 }}>
+            <button
+              type="button"
+              onClick={() => setType('value')}
+              style={{
+                flex: 1, padding: '0.5rem', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                background: type === 'value' ? 'var(--panel-bg)' : 'transparent',
+                color: type === 'value' ? 'var(--primary)' : 'var(--text-muted)',
+                boxShadow: type === 'value' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              Valor Fixo (R$)
+            </button>
+            <button
+              type="button"
+              onClick={() => setType('percent')}
+              style={{
+                flex: 1, padding: '0.5rem', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                background: type === 'percent' ? 'var(--panel-bg)' : 'transparent',
+                color: type === 'percent' ? 'var(--primary)' : 'var(--text-muted)',
+                boxShadow: type === 'percent' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              Percentual (%)
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+              {type === 'value' ? 'Valor do Desconto (R$)' : 'Percentual de Desconto (%)'}
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+                {type === 'value' ? 'R$' : '%'}
+              </span>
+              <input
+                type="number"
+                min="0"
+                max={type === 'percent' ? 100 : subtotal}
+                step={type === 'percent' ? 1 : 0.50}
+                placeholder="0"
+                value={val}
+                onChange={e => setVal(e.target.value)}
+                style={{ width: '100%', padding: '0.6rem 0.75rem 0.6rem 2.5rem', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '1rem', fontWeight: 800, outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {/* Resumo do Desconto */}
+          <div style={{ background: 'var(--bg-color)', borderRadius: 10, padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Desconto Aplicado:</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--success)' }}>
+              − {fmtCurrency(discountAmt)}
+            </span>
+          </div>
+        </div>
+
+        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+          <button className="btn-premium" onClick={handleClear} style={{ background: 'none', border: '1.5px solid var(--border)', color: 'var(--danger)' }}>
+            Remover Desconto
+          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn-premium" onClick={onClose} style={{ background: 'var(--panel-bg)', border: '1.5px solid var(--border)', color: 'var(--text-main)' }}>
+              Cancelar
+            </button>
+            <button className="btn-premium btn-success-gradient" onClick={handleApply}>
+              Aplicar Desconto
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Transfer & Merge Modal ────────────────────────────────── */
+function TransferModal({ currentOrder, items, products, openOrders, onClose, onTransferItems, onMergeOrders }) {
+  const [activeTab, setActiveTab] = useState('items'); // 'items' | 'merge'
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [targetTable, setTargetTable] = useState('');
+  const [targetMergeOrderId, setTargetMergeOrderId] = useState('');
+
+  const otherOrders = openOrders.filter(o => o.id !== currentOrder.id);
+
+  const toggleItem = (id) => {
+    setSelectedItemIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleTransfer = () => {
+    if (!selectedItemIds.length || !targetTable.trim()) return;
+    onTransferItems(selectedItemIds, targetTable.trim());
+  };
+
+  const handleMerge = () => {
+    if (!targetMergeOrderId) return;
+    onMergeOrders(parseInt(targetMergeOrderId, 10));
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-content" style={{ maxWidth: '520px' }}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ArrowRightLeft size={18} style={{ color: 'var(--primary)' }} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Mover / Juntar Comandas</h3>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Mesa {currentOrder.tableNumber} (Comanda #{currentOrder.orderNumber})</span>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid var(--border)' }}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('items')}
+              style={{
+                padding: '0.55rem 1rem', border: 'none', background: 'none', cursor: 'pointer',
+                fontWeight: 800, fontSize: '0.85rem',
+                color: activeTab === 'items' ? 'var(--primary)' : 'var(--text-muted)',
+                borderBottom: activeTab === 'items' ? '3px solid var(--primary)' : '3px solid transparent',
+                marginBottom: '-2px'
+              }}
+            >
+              📦 Transferir Itens
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('merge')}
+              style={{
+                padding: '0.55rem 1rem', border: 'none', background: 'none', cursor: 'pointer',
+                fontWeight: 800, fontSize: '0.85rem',
+                color: activeTab === 'merge' ? 'var(--primary)' : 'var(--text-muted)',
+                borderBottom: activeTab === 'merge' ? '3px solid var(--primary)' : '3px solid transparent',
+                marginBottom: '-2px'
+              }}
+            >
+              🔀 Juntar com Outra Mesa
+            </button>
+          </div>
+
+          {activeTab === 'items' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                Selecione os itens a serem transferidos:
+              </label>
+              <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'var(--bg-color)', padding: '0.5rem', borderRadius: 10 }}>
+                {items.map(item => {
+                  const pName = products.find(p => p.id === item.productId)?.name || 'Produto';
+                  const isSel = selectedItemIds.includes(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => toggleItem(item.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '0.5rem 0.75rem', borderRadius: 8, cursor: 'pointer',
+                        background: isSel ? 'var(--primary-light)' : 'var(--panel-bg)',
+                        border: '1.5px solid', borderColor: isSel ? 'var(--primary)' : 'var(--border)',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="checkbox" checked={isSel} readOnly style={{ cursor: 'pointer' }} />
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>{item.quantity}× {pName}</span>
+                      </div>
+                      <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--primary)' }}>{fmtCurrency(item.price * item.quantity)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Número da Mesa de Destino
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: 5 ou VIP"
+                  value={targetTable}
+                  onChange={e => setTargetTable(e.target.value)}
+                  style={{ padding: '0.6rem 0.75rem', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 700, outline: 'none' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'merge' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Todos os itens da mesa selecionada abaixo serão unidos à <strong>Mesa {currentOrder.tableNumber}</strong> e a mesa selecionada será incorporada.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Selecione a Mesa para Incorporar
+                </label>
+                <select
+                  value={targetMergeOrderId}
+                  onChange={e => setTargetMergeOrderId(e.target.value)}
+                  style={{ padding: '0.65rem 0.75rem', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 700, outline: 'none' }}
+                >
+                  <option value="">Selecione uma mesa aberta...</option>
+                  {otherOrders.map(o => (
+                    <option key={o.id} value={o.id}>
+                      Mesa {o.tableNumber} — Comanda #{o.orderNumber}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button className="btn-premium" onClick={onClose} style={{ background: 'var(--panel-bg)', border: '1.5px solid var(--border)', color: 'var(--text-main)' }}>
+            Cancelar
+          </button>
+          {activeTab === 'items' ? (
+            <button
+              className="btn-premium btn-success-gradient"
+              disabled={!selectedItemIds.length || !targetTable.trim()}
+              onClick={handleTransfer}
+              style={{ opacity: (!selectedItemIds.length || !targetTable.trim()) ? 0.5 : 1 }}
+            >
+              Transferir {selectedItemIds.length} item(ns)
+            </button>
+          ) : (
+            <button
+              className="btn-premium btn-success-gradient"
+              disabled={!targetMergeOrderId}
+              onClick={handleMerge}
+              style={{ opacity: !targetMergeOrderId ? 0.5 : 1 }}
+            >
+              Juntar Mesas
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Table Card ───────────────────────────────────────────── */
 function TableCard({ tableNumber, orders, onSelect, itemTotalsMap }) {
   const openOrders = orders.filter(o => o.status === 'open');
@@ -334,7 +624,7 @@ function TableCard({ tableNumber, orders, onSelect, itemTotalsMap }) {
 }
 
 /* ─── Order Detail Panel ───────────────────────────────────── */
-function OrderDetailPanel({ order, items, products, onClose, onOpenModal, onPrint, onAddItems }) {
+function OrderDetailPanel({ order, items, products, onClose, onOpenModal, onPrint, onAddItems, onOpenDiscount, onOpenTransfer }) {
   const { addToast } = useToast();
   const [printSector, setPrintSector] = useState(null); // 'COZINHA' | 'BAR' | null
   const [printItems, setPrintItems] = useState([]);
@@ -345,9 +635,14 @@ function OrderDetailPanel({ order, items, products, onClose, onOpenModal, onPrin
   const hasTax       = order.hasTax !== false;
   const hasCouvert   = order.hasCouvert === true;
   const couvertAmt   = order.couvertValue ?? 12.00;
-  const taxAmount    = hasTax    ? subtotal * 0.10 : 0;
+  const discVal      = order.discountValue || 0;
+  const discType     = order.discountType || 'value';
+  const discountAmt  = discType === 'percent' ? (subtotal * discVal) / 100 : Math.min(subtotal, discVal);
+  const subAfterDisc = Math.max(0, subtotal - discountAmt);
+
+  const taxAmount    = hasTax    ? subAfterDisc * 0.10 : 0;
   const couvertAmount = hasCouvert ? couvertAmt  : 0;
-  const total        = subtotal + taxAmount + couvertAmount;
+  const total        = subAfterDisc + taxAmount + couvertAmount;
 
   const headerBg = order.status === 'open'
     ? 'linear-gradient(135deg, hsl(218,45%,18%) 0%, hsl(230,50%,25%) 100%)'
@@ -452,6 +747,12 @@ function OrderDetailPanel({ order, items, products, onClose, onOpenModal, onPrin
               <div className="order-totals-row">
                 <span>Consumo</span><span>{fmtCurrency(subtotal)}</span>
               </div>
+              {discountAmt > 0 && (
+                <div className="order-totals-row" style={{ color: 'var(--success)', fontWeight: 700 }}>
+                  <span>Desconto ({discType === 'percent' ? `${discVal}%` : 'R$'})</span>
+                  <span>− {fmtCurrency(discountAmt)}</span>
+                </div>
+              )}
               {hasTax && (
                 <div className="order-totals-row">
                   <span>Taxa Serviço (10%)</span><span>+ {fmtCurrency(taxAmount)}</span>
@@ -487,6 +788,14 @@ function OrderDetailPanel({ order, items, products, onClose, onOpenModal, onPrin
         </button>
         {order.status === 'open' && (
           <>
+            <button className="btn-premium" onClick={onOpenDiscount}
+              style={{ background: discountAmt > 0 ? 'var(--success-light)' : 'var(--panel-bg)', border: `1.5px solid ${discountAmt > 0 ? 'var(--success)' : 'var(--border)'}`, color: discountAmt > 0 ? 'var(--success)' : 'var(--text-main)', fontSize: '0.82rem' }}>
+              <Tag size={15} /> Desconto {discountAmt > 0 && `(${discType === 'percent' ? `${discVal}%` : `R$${discVal}`})`}
+            </button>
+            <button className="btn-premium" onClick={onOpenTransfer}
+              style={{ background: 'var(--panel-bg)', border: '1.5px solid var(--border)', color: 'var(--text-main)', fontSize: '0.82rem' }}>
+              <ArrowRightLeft size={15} /> Mover / Juntar
+            </button>
             <button className="btn-premium" onClick={onAddItems}
               style={{ background: 'var(--primary-light)', border: '1.5px solid rgba(var(--primary-hue), var(--primary-sat), var(--primary-lightness), 0.25)', color: 'var(--primary)', fontSize: '0.82rem' }}>
               <Plus size={15} /> Lançar Itens
@@ -498,8 +807,8 @@ function OrderDetailPanel({ order, items, products, onClose, onOpenModal, onPrin
           </>
         )}
         {order.status === 'closed' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', fontWeight: 700 }}>
-            <CheckCircle size={18} /> Comanda Encerrada
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--success)', fontWeight: 700, background: 'var(--success-light)', padding: '0.5rem 1rem', borderRadius: 8, border: '1px solid var(--success)' }}>
+            <CheckCircle size={18} /> Comanda Encerrada ({order.paymentMethod || 'Dinheiro'})
           </div>
         )}
       </div>
@@ -528,6 +837,8 @@ export function Orders() {
   const { addToast } = useToast();
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('open'); // 'open' | 'closed' | 'all'
 
@@ -587,6 +898,7 @@ export function Orders() {
   }, [allTables, tableMap, searchTerm, statusFilter]);
 
   const selectedOrder = rawOrders.find(o => o.id === selectedOrderId);
+  const openOrders    = useMemo(() => rawOrders.filter(o => o.status === 'open'), [rawOrders]);
 
   const openCount   = allTables.filter(t => tableMap[t].some(o => o.status === 'open')).length;
   const urgentCount = allTables.filter(t => tableMap[t].some(o => o.status === 'open' && isUrgent(o.date))).length;
@@ -606,20 +918,97 @@ export function Orders() {
     }
   };
 
-  /* ── When a table card is clicked, show its latest open order */
+  const handleSaveDiscount = async (val, type) => {
+    setShowDiscountModal(false);
+    if (!selectedOrderId) return;
+    await db.orders.update(selectedOrderId, {
+      discountValue: val,
+      discountType: type
+    });
+    addToast('Desconto atualizado com sucesso!', 'success');
+  };
+
+  const handleTransferItems = async (itemIds, targetTable) => {
+    setShowTransferModal(false);
+    if (!selectedOrderId || !itemIds.length) return;
+
+    // Check if target table already has an open order
+    const existingOrder = rawOrders.find(o => String(o.tableNumber) === String(targetTable) && o.status === 'open');
+    let destOrderId = existingOrder ? existingOrder.id : null;
+
+    if (!destOrderId) {
+      const newOrderNum = String(rawOrders.length + 1).padStart(3, '0');
+      destOrderId = await db.orders.add({
+        orderNumber: newOrderNum,
+        tableNumber: String(targetTable),
+        status: 'open',
+        date: new Date().toISOString(),
+        hasTax: true,
+        hasCouvert: false,
+        couvertValue: 12.00,
+        discountValue: 0,
+        discountType: 'value'
+      });
+    }
+
+    await Promise.all(
+      itemIds.map(id => db.orderItems.update(id, { orderId: destOrderId }))
+    );
+
+    addToast(`Itens transferidos para a Mesa ${targetTable}!`, 'success');
+  };
+
+  const handleMergeOrders = async (targetOrderId) => {
+    setShowTransferModal(false);
+    if (!selectedOrderId || !targetOrderId) return;
+
+    const targetItems = await db.orderItems.where({ orderId: targetOrderId }).toArray();
+    await Promise.all(
+      targetItems.map(item => db.orderItems.update(item.id, { orderId: selectedOrderId }))
+    );
+
+    await db.orders.update(targetOrderId, { status: 'closed' });
+
+    addToast(`Mesa incorporada à Mesa ${selectedOrder.tableNumber}!`, 'success');
+  };
+
+  /* ── When a table card is clicked, show its latest order */
   const handleTableSelect = (order) => {
     setSelectedOrderId(order.id);
   };
 
   return (
     <div className="orders-page fade-in-up">
-      {/* ── Modal ── */}
+      {/* ── Modal Fechar / Dividir ── */}
       {showModal && selectedOrder && (
         <ConfirmModal
           order={selectedOrder}
           items={rawOrderItems.map(i => ({ ...i, name: products.find(p => p.id === i.productId)?.name || 'Produto' }))}
           onClose={() => setShowModal(false)}
           onConfirm={handleConfirm}
+        />
+      )}
+
+      {/* ── Modal Desconto ── */}
+      {showDiscountModal && selectedOrder && (
+        <DiscountModal
+          order={selectedOrder}
+          subtotal={rawOrderItems.reduce((a, i) => a + i.price * i.quantity, 0)}
+          onClose={() => setShowDiscountModal(false)}
+          onSave={handleSaveDiscount}
+        />
+      )}
+
+      {/* ── Modal Transferir / Juntar ── */}
+      {showTransferModal && selectedOrder && (
+        <TransferModal
+          currentOrder={selectedOrder}
+          items={rawOrderItems}
+          products={products}
+          openOrders={openOrders}
+          onClose={() => setShowTransferModal(false)}
+          onTransferItems={handleTransferItems}
+          onMergeOrders={handleMergeOrders}
         />
       )}
 
@@ -632,6 +1021,8 @@ export function Orders() {
             products={products}
             onClose={() => setSelectedOrderId(null)}
             onOpenModal={() => setShowModal(true)}
+            onOpenDiscount={() => setShowDiscountModal(true)}
+            onOpenTransfer={() => setShowTransferModal(true)}
             onPrint={() => window.print()}
             onAddItems={() => navigate('/dashboard/pdv', { state: { activeOrderId: selectedOrder.id } })}
           />

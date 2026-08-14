@@ -17,9 +17,14 @@ export function Receipt({
   if (!order) return null;
 
   const sub         = subtotal ?? totalLegacy ?? 0;
-  const taxAmount   = hasTax    ? sub * 0.10 : 0;
+  const discountVal = order.discountValue || 0;
+  const discountType= order.discountType || 'value';
+  const discountAmt = discountType === 'percent' ? (sub * discountVal) / 100 : Math.min(sub, discountVal);
+  const subAfterDiscount = Math.max(0, sub - discountAmt);
+
+  const taxAmount   = hasTax    ? subAfterDiscount * 0.10 : 0;
   const couvertAmt  = hasCouvert ? couvertValue : 0;
-  const finalTotal  = sub + taxAmount + couvertAmt;
+  const finalTotal  = subAfterDiscount + taxAmount + couvertAmt;
 
   // The 80mm width is roughly 300px
   return (
@@ -68,6 +73,9 @@ export function Receipt({
 
       <div className="border-t border-black border-dashed pt-2 space-y-1 text-right mb-4">
         <p>CONSUMO: R$ {sub.toFixed(2).replace('.', ',')}</p>
+        {discountAmt > 0 && (
+          <p>DESCONTO ({discountType === 'percent' ? `${discountVal}%` : 'R$'}): - R$ {discountAmt.toFixed(2).replace('.', ',')}</p>
+        )}
         {hasTax && (
           <p>TAXA SERVIÇO (10%): + R$ {taxAmount.toFixed(2).replace('.', ',')}</p>
         )}
