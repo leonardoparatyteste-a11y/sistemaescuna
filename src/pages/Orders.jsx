@@ -31,85 +31,251 @@ function calcTotal(subtotal, order) {
   return subtotal + (hasTax ? subtotal * 0.1 : 0) + (hasCouvert ? cv : 0);
 }
 
-/* ─── Confirm Modal ────────────────────────────────────────── */
-function ConfirmModal({ order, items, onClose, onConfirm }) {
-  const subtotal     = items.reduce((a, i) => a + i.price * i.quantity, 0);
-  const hasTax       = order.hasTax !== false;
-  const hasCouvert   = order.hasCouvert === true;
-  const couvertAmt   = order.couvertValue ?? 12.00;
-  const taxAmount    = hasTax    ? subtotal * 0.10 : 0;
-  const couvertAmount = hasCouvert ? couvertAmt  : 0;
-  const finalTotal   = subtotal + taxAmount + couvertAmount;
+/* ─── Split Bill Modal ──────────────────────────────────────── */
+function SplitBillModal({ order, items, onClose, onConfirm }) {
+  const subtotal      = items.reduce((a, i) => a + i.price * i.quantity, 0);
+  const hasTax        = order.hasTax !== false;
+  const hasCouvert    = order.hasCouvert === true;
+  const couvertAmt    = order.couvertValue ?? 12.00;
+  const taxAmount     = hasTax    ? subtotal * 0.10 : 0;
+  const couvertAmount = hasCouvert ? couvertAmt : 0;
+  const finalTotal    = subtotal + taxAmount + couvertAmount;
+
+  const [people, setPeople]         = useState(2);
+  const [received, setReceived]     = useState('');
+  const [payMethod, setPayMethod]   = useState('Dinheiro');
+  const [activeTab, setActiveTab]   = useState('split'); // 'split' | 'full'
+
+  const perPerson   = finalTotal / people;
+  const receivedVal = parseFloat(received) || 0;
+  const change      = receivedVal - (activeTab === 'split' ? perPerson : finalTotal);
+
+  const PAYMENT_METHODS = ['Dinheiro', 'PIX', 'Cartão de Crédito', 'Cartão de Débito', 'Cortesia'];
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-content" style={{ maxWidth: '460px' }}>
+      <div className="modal-content" style={{ maxWidth: '500px' }}>
+
+        {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CreditCard size={18} style={{ color: 'var(--success)' }} />
             </div>
-            <h3 style={{ margin: 0, fontWeight: 800 }}>
-              Fechar Mesa {order?.tableNumber} — Comanda #{order?.orderNumber}
-            </h3>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>
+                Fechar Mesa {order?.tableNumber} — Comanda #{order?.orderNumber}
+              </h3>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Total: <strong style={{ color: 'var(--primary)' }}>{fmtCurrency(finalTotal)}</strong>
+              </span>
+            </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex' }}>
             <X size={20} />
           </button>
         </div>
 
-        <div className="modal-body">
-          <div style={{ background: 'var(--bg-color)', borderRadius: 12, padding: '1rem', marginBottom: '1rem' }}>
-            {items.map(item => (
-              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.88rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>{item.quantity}× {item.name}</span>
-                <span style={{ fontWeight: 700 }}>{fmtCurrency(item.price * item.quantity)}</span>
-              </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid var(--border)' }}>
+            {[
+              { id: 'split', label: '👥 Dividir Conta' },
+              { id: 'full',  label: '💳 Pagar Total' },
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+                padding: '0.55rem 1rem', border: 'none', background: 'none', cursor: 'pointer',
+                fontWeight: 800, fontSize: '0.88rem',
+                color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-muted)',
+                borderBottom: activeTab === tab.id ? '3px solid var(--primary)' : '3px solid transparent',
+                marginBottom: '-2px', transition: 'all 0.2s'
+              }}>
+                {tab.label}
+              </button>
             ))}
-            <div style={{ borderTop: '1.5px dashed var(--border)', marginTop: '0.75rem', paddingTop: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Consumo</span>
-                <span style={{ fontWeight: 600 }}>{fmtCurrency(subtotal)}</span>
+          </div>
+
+          {/* ── TAB: DIVIDIR ── */}
+          {activeTab === 'split' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+              {/* Seletor de pessoas */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-color)', borderRadius: 12, padding: '0.75rem 1rem' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                  <Users size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                  Número de pessoas
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => setPeople(p => Math.max(2, p - 1))}
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--panel-bg)', cursor: 'pointer', fontWeight: 900, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}
+                  >−</button>
+                  <span style={{ fontWeight: 900, fontSize: '1.4rem', minWidth: 28, textAlign: 'center', color: 'var(--primary)' }}>{people}</span>
+                  <button
+                    onClick={() => setPeople(p => Math.min(20, p + 1))}
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--panel-bg)', cursor: 'pointer', fontWeight: 900, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}
+                  >+</button>
+                </div>
               </div>
-              {hasTax && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Taxa de Serviço (10%)</span>
-                  <span style={{ fontWeight: 600 }}>+ {fmtCurrency(taxAmount)}</span>
+
+              {/* Valor por pessoa */}
+              <div style={{
+                background: 'linear-gradient(135deg, var(--primary) 0%, hsl(258,80%,60%) 100%)',
+                borderRadius: 14, padding: '1.25rem', textAlign: 'center', color: 'white',
+                boxShadow: '0 8px 24px rgba(var(--primary-rgb),0.3)'
+              }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, opacity: 0.85, marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Cada pessoa paga
                 </div>
-              )}
-              {hasCouvert && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Couvert Musical</span>
-                  <span style={{ fontWeight: 600 }}>+ {fmtCurrency(couvertAmount)}</span>
+                <div style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-1px' }}>
+                  {fmtCurrency(perPerson)}
                 </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '2px solid var(--border)' }}>
-                <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Total a Pagar</span>
-                <span style={{ fontWeight: 900, fontSize: '1.4rem', color: 'var(--primary)', letterSpacing: '-0.5px' }}>{fmtCurrency(finalTotal)}</span>
+                <div style={{ fontSize: '0.75rem', opacity: 0.75, marginTop: '0.2rem' }}>
+                  {fmtCurrency(finalTotal)} ÷ {people} pessoas
+                </div>
+              </div>
+
+              {/* Calculadora de troco por pessoa */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Calculadora de troco (por pessoa)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.9rem' }}>R$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.50"
+                      placeholder="Valor recebido"
+                      value={received}
+                      onChange={e => setReceived(e.target.value)}
+                      style={{ width: '100%', paddingLeft: '2.5rem', padding: '0.6rem 0.75rem 0.6rem 2.5rem', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  {change >= 0 && received && (
+                    <div style={{ background: change > 0 ? 'var(--success-light)' : 'var(--bg-color)', border: `1.5px solid ${change > 0 ? 'var(--success)' : 'var(--border)'}`, borderRadius: 10, padding: '0.6rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 90 }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: change > 0 ? 'var(--success)' : 'var(--text-muted)', textTransform: 'uppercase' }}>Troco</span>
+                      <span style={{ fontWeight: 900, fontSize: '1rem', color: change > 0 ? 'var(--success)' : 'var(--text-muted)' }}>{fmtCurrency(Math.max(0, change))}</span>
+                    </div>
+                  )}
+                </div>
+                {/* Atalhos de valor */}
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  {[10, 20, 50, 100].map(v => (
+                    <button key={v} onClick={() => setReceived(String(v))}
+                      style={{ padding: '0.3rem 0.7rem', borderRadius: 8, border: '1.5px solid var(--border)', background: parseFloat(received) === v ? 'var(--primary)' : 'var(--panel-bg)', color: parseFloat(received) === v ? 'white' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                      R${v}
+                    </button>
+                  ))}
+                  <button onClick={() => setReceived(perPerson.toFixed(2))}
+                    style={{ padding: '0.3rem 0.7rem', borderRadius: 8, border: '1.5px solid var(--primary)', background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                    Exato
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            Esta ação irá fechar definitivamente a comanda. Deseja prosseguir?
-          </p>
+          )}
+
+          {/* ── TAB: PAGAR TOTAL ── */}
+          {activeTab === 'full' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+              {/* Resumo */}
+              <div style={{ background: 'var(--bg-color)', borderRadius: 12, padding: '1rem' }}>
+                {items.map(item => (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', fontSize: '0.85rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{item.quantity}× {item.name}</span>
+                    <span style={{ fontWeight: 600 }}>{fmtCurrency(item.price * item.quantity)}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop: '1.5px dashed var(--border)', marginTop: '0.6rem', paddingTop: '0.6rem' }}>
+                  {hasTax && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}><span>Taxa (10%)</span><span>+ {fmtCurrency(taxAmount)}</span></div>}
+                  {hasCouvert && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}><span>Couvert</span><span>+ {fmtCurrency(couvertAmount)}</span></div>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.4rem', borderTop: '2px solid var(--border)' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total</span>
+                    <span style={{ fontWeight: 900, fontSize: '1.3rem', color: 'var(--primary)' }}>{fmtCurrency(finalTotal)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Forma de pagamento */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Forma de Pagamento</label>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  {PAYMENT_METHODS.map(m => (
+                    <button key={m} onClick={() => setPayMethod(m)} style={{
+                      padding: '0.4rem 0.8rem', borderRadius: 8, border: '1.5px solid',
+                      borderColor: payMethod === m ? 'var(--primary)' : 'var(--border)',
+                      background: payMethod === m ? 'var(--primary)' : 'var(--panel-bg)',
+                      color: payMethod === m ? 'white' : 'var(--text-muted)',
+                      fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.15s'
+                    }}>{m}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Troco (só dinheiro) */}
+              {payMethod === 'Dinheiro' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Valor Recebido</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>R$</span>
+                      <input
+                        type="number" min="0" step="0.50" placeholder="0,00" value={received}
+                        onChange={e => setReceived(e.target.value)}
+                        style={{ width: '100%', paddingLeft: '2.5rem', padding: '0.6rem 0.75rem 0.6rem 2.5rem', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--panel-bg)', color: 'var(--text-main)', fontSize: '0.95rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    {change >= 0 && received && (
+                      <div style={{ background: 'var(--success-light)', border: '1.5px solid var(--success)', borderRadius: 10, padding: '0.6rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 90 }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase' }}>Troco</span>
+                        <span style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--success)' }}>{fmtCurrency(Math.max(0, change))}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {[20, 50, 100, 200].map(v => (
+                      <button key={v} onClick={() => setReceived(String(v))}
+                        style={{ padding: '0.3rem 0.7rem', borderRadius: 8, border: '1.5px solid var(--border)', background: parseFloat(received) === v ? 'var(--primary)' : 'var(--panel-bg)', color: parseFloat(received) === v ? 'white' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                        R${v}
+                      </button>
+                    ))}
+                    <button onClick={() => setReceived(finalTotal.toFixed(2))}
+                      style={{ padding: '0.3rem 0.7rem', borderRadius: 8, border: '1.5px solid var(--primary)', background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                      Exato
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* Footer */}
         <div className="modal-footer">
           <button className="btn-premium" onClick={onClose}
             style={{ background: 'var(--panel-bg)', border: '1.5px solid var(--border)', color: 'var(--text-main)' }}>
             Cancelar
           </button>
-          <button className="btn-premium" onClick={() => onConfirm('print')}
+          <button className="btn-premium" onClick={() => onConfirm('print', payMethod)}
             style={{ background: 'var(--panel-bg)', border: '1.5px solid var(--border)', color: 'var(--text-muted)' }}>
             <Printer size={16} /> Só Imprimir
           </button>
-          <button className="btn-premium btn-success-gradient" onClick={() => onConfirm('close')}>
+          <button className="btn-premium btn-success-gradient" onClick={() => onConfirm('close', payMethod)}>
             <CheckCircle size={16} /> Fechar e Imprimir
           </button>
         </div>
       </div>
     </div>
   );
+}
+
+/* ─── Confirm Modal (legacy redirect) ──────────────────────── */
+function ConfirmModal(props) {
+  return <SplitBillModal {...props} />;
 }
 
 /* ─── Table Card ───────────────────────────────────────────── */
@@ -425,11 +591,14 @@ export function Orders() {
   const openCount   = allTables.filter(t => tableMap[t].some(o => o.status === 'open')).length;
   const urgentCount = allTables.filter(t => tableMap[t].some(o => o.status === 'open' && isUrgent(o.date))).length;
 
-  const handleConfirm = async (action) => {
+  const handleConfirm = async (action, payMethod) => {
     setShowModal(false);
     if (action === 'close' || action === 'print') {
       if (action === 'close') {
-        await db.orders.update(selectedOrderId, { status: 'closed' });
+        await db.orders.update(selectedOrderId, {
+          status: 'closed',
+          paymentMethod: payMethod || 'Dinheiro'
+        });
         addToast('Comanda fechada com sucesso!', 'success');
         setSelectedOrderId(null);
       }
