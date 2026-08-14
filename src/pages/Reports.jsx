@@ -78,6 +78,21 @@ export function Reports() {
     return sum + (o.couvertValue || 12.00);
   }, 0);
 
+  // Cálculo de Custo das Mercadorias Vendidas (CMV) e Lucro Real
+  const totalCMV = useMemo(() => {
+    const closedOrderIds = new Set(closedOrders.map(o => o.id));
+    const itemsInPeriod = orderItems.filter(item => closedOrderIds.has(item.orderId));
+    return itemsInPeriod.reduce((sum, item) => {
+      const p = products.find(prod => prod.id === item.productId);
+      const cost = p?.costPrice ?? ((p?.price || 0) * 0.4);
+      return sum + cost * (item.quantity || 0);
+    }, 0);
+  }, [closedOrders, orderItems, products]);
+
+  const grossProfit = barRevenue - totalCMV;
+  const netProfit = totalRevenue - totalCMV;
+  const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
   // Formas de Pagamento (Estimado/Agrupado)
   const paymentBreakdown = useMemo(() => {
     const acc = {
@@ -399,6 +414,17 @@ export function Reports() {
               </div>
               <p style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', color: 'var(--text-main)' }}>{fmtCurrency(barRevenue)}</p>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{closedOrders.length} comandas fechadas</span>
+            </div>
+
+            <div className="glass-panel" style={{ margin: 0, borderLeft: '4px solid var(--primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Lucro Real (CMV)</span>
+                <TrendingUp size={20} style={{ color: 'var(--primary)' }} />
+              </div>
+              <p style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmtCurrency(netProfit)}</p>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                CMV: {fmtCurrency(totalCMV)} · Margem: <strong>{profitMargin.toFixed(1)}%</strong>
+              </span>
             </div>
 
             <div className="glass-panel" style={{ margin: 0, borderLeft: '4px solid hsl(258, 80%, 60%)' }}>

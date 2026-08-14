@@ -77,18 +77,18 @@ db.version(6).stores({
   });
 });
 
-db.version(7).stores({
+db.version(8).stores({
   users: '++id, username, password, role',
-  products: '++id, code, name, category, price, stock, [category+name]',
+  products: '++id, code, name, category, price, costPrice, stock, minStock, [category+name]',
   tickets: '++id, ticketNumber, passengerType, agency, price, status, date, boardingStatus, boardedAt',
   orders: '++id, orderNumber, tableNumber, status, date, hasTax, hasCouvert, couvertValue, discountValue, discountType, paymentMethod, [status+date]',
   orderItems: '++id, orderId, productId, quantity, price, printed',
   sync_queue: '++id, type, action, payload, status',
   cash_movements: '++id, type, amount, description, user, date'
 }).upgrade(tx => {
-  return tx.table('orders').toCollection().modify(order => {
-    if (order.discountValue === undefined) order.discountValue = 0;
-    if (order.discountType === undefined) order.discountType = 'value';
+  return tx.table('products').toCollection().modify(product => {
+    if (product.costPrice === undefined) product.costPrice = product.price ? product.price * 0.4 : 0;
+    if (product.minStock === undefined) product.minStock = 10;
   });
 });
 
@@ -100,16 +100,16 @@ db.on('populate', async () => {
   ]);
 
   await db.products.bulkAdd([
-    { code: '01', name: 'AGUA S/ GAS',    category: 'bebidas',    price: 4.00,  stock: 100 },
-    { code: '02', name: 'AGUA C/ GAS',    category: 'bebidas',    price: 5.00,  stock: 100 },
-    { code: '03', name: 'REFRIGERANTE',   category: 'bebidas',    price: 6.00,  stock: 150 },
-    { code: '04', name: 'CERVEJA LATA',   category: 'bebidas',    price: 8.00,  stock: 200 },
-    { code: '06', name: 'CAIPIRINHA',     category: 'bebidas',    price: 15.00, stock: 50  },
-    { code: '24', name: 'BATATA FRITA',   category: 'porcoes',    price: 30.00, stock: 30  },
-    { code: '25', name: 'CAMARAO MEDIO',  category: 'porcoes',    price: 45.00, stock: 20  },
-    { code: '18', name: 'SALADA',         category: 'pratos',     price: 20.00, stock: 15  },
-    { code: '21', name: 'VEGETARIANO',    category: 'pratos',     price: 35.00, stock: 10  },
-    { code: '35', name: 'DOCE',           category: 'sobremesas', price: 5.00,  stock: 40  },
+    { code: '01', name: 'AGUA S/ GAS',    category: 'bebidas',    price: 4.00,  costPrice: 1.50, stock: 100, minStock: 15 },
+    { code: '02', name: 'AGUA C/ GAS',    category: 'bebidas',    price: 5.00,  costPrice: 2.00, stock: 100, minStock: 15 },
+    { code: '03', name: 'REFRIGERANTE',   category: 'bebidas',    price: 6.00,  costPrice: 2.50, stock: 150, minStock: 20 },
+    { code: '04', name: 'CERVEJA LATA',   category: 'bebidas',    price: 8.00,  costPrice: 3.50, stock: 200, minStock: 30 },
+    { code: '06', name: 'CAIPIRINHA',     category: 'bebidas',    price: 15.00, costPrice: 4.00, stock: 50,  minStock: 10 },
+    { code: '24', name: 'BATATA FRITA',   category: 'porcoes',    price: 30.00, costPrice: 9.00, stock: 30,  minStock: 5  },
+    { code: '25', name: 'CAMARAO MEDIO',  category: 'porcoes',    price: 45.00, costPrice: 18.00, stock: 20, minStock: 5  },
+    { code: '18', name: 'SALADA',         category: 'pratos',     price: 20.00, costPrice: 6.00, stock: 15,  minStock: 5  },
+    { code: '21', name: 'VEGETARIANO',    category: 'pratos',     price: 35.00, costPrice: 10.00, stock: 10, minStock: 3  },
+    { code: '35', name: 'DOCE',           category: 'sobremesas', price: 5.00,  costPrice: 1.50, stock: 40,  minStock: 10 },
   ]);
 
   const now = new Date();

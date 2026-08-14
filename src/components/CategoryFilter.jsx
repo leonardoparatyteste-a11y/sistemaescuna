@@ -4,7 +4,7 @@ import { getCatMeta } from './ProductCard';
 
 const categories = ['todas', 'bebidas', 'porcoes', 'pratos', 'sobremesas'];
 
-export const CategoryFilter = memo(({ activeCategory, setActiveCategory, searchTerm, setSearchTerm }) => {
+export const CategoryFilter = memo(({ activeCategory, setActiveCategory, searchTerm, setSearchTerm, inputRef, onKeyDown }) => {
   return (
     <div className="category-filter-bar">
       <div className="categories-wrapper">
@@ -31,11 +31,13 @@ export const CategoryFilter = memo(({ activeCategory, setActiveCategory, searchT
       <div className="search-wrapper">
         <Search size={15} className="search-icon" />
         <input
+          ref={inputRef}
           type="text"
           className="input-premium search-input"
-          placeholder="Buscar produto..."
+          placeholder="Buscar produto (F2)..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
+          onKeyDown={onKeyDown}
         />
       </div>
     </div>

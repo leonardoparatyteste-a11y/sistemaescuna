@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Search, DollarSign, ArrowUpRight } from 'lucide-react';
+import { Search, DollarSign, ArrowUpRight, Keyboard } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useCart } from '../hooks/useCart';
 import { ProductCard } from '../components/ProductCard';
@@ -13,6 +13,9 @@ import { calculateCashDrawerBalance } from '../utils/cashMovementUtils';
 
 export function PDV() {
   const { addToast } = useToast();
+  const searchInputRef = useRef(null);
+  const comandaInputRef = useRef(null);
+
   const [tableNumber, setTableNumber] = useState('');
   const [comandaNumber, setComandaNumber] = useState('');
   const [activeCategory, setActiveCategory] = useState('todas');
@@ -79,6 +82,35 @@ export function PDV() {
       }
     }
   }, [comandaNumber, openOrders, activeOrderId, addToast]);
+
+  // Global Keyboard Shortcuts (F2: Busca, F4: Comanda, ESC: Limpar)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        comandaInputRef.current?.focus();
+      } else if (e.key === 'Escape') {
+        setSearchTerm('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Barcode Scanner or Exact Code Enter Match
+  const handleSearchKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      const exactProduct = products.find(p => p.code.toLowerCase() === searchTerm.trim().toLowerCase());
+      if (exactProduct) {
+        addToCart(exactProduct);
+        addToast(`+1 ${exactProduct.name} adicionado ao carrinho!`, 'success');
+        setSearchTerm('');
+      }
+    }
+  }, [searchTerm, products, addToCart, addToast]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -232,6 +264,8 @@ export function PDV() {
           setActiveCategory={setActiveCategory}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
+          inputRef={searchInputRef}
+          onKeyDown={handleSearchKeyDown}
         />
 
         <div className="products-grid">
@@ -256,6 +290,13 @@ export function PDV() {
             </div>
           )}
         </div>
+
+        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'center' }}>
+          <span><Keyboard size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} /> <strong>F2</strong>: Buscar produto</span>
+          <span><strong>F4</strong>: Nº Comanda</span>
+          <span><strong>ESC</strong>: Limpar busca</span>
+          <span><strong>ENTER</strong> no código: Adicionar direto</span>
+        </div>
       </div>
 
       {/* Cart Sidebar */}
@@ -265,6 +306,7 @@ export function PDV() {
         setTableNumber={setTableNumber}
         comandaNumber={comandaNumber}
         setComandaNumber={setComandaNumber}
+        comandaInputRef={comandaInputRef}
         updateQuantity={updateQuantity}
         cartTotal={cartTotal}
         handleCheckout={handleCheckout}

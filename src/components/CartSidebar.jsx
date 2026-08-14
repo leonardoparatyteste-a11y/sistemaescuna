@@ -24,6 +24,7 @@ export const CartSidebar = memo(({
   setHasCouvert,
   couvertValue = 12.00,
   setCouvertValue = () => {},
+  comandaInputRef,
 }) => {
   const taxAmount    = hasTax    ? cartTotal * 0.10 : 0;
   const couvertTotal = hasCouvert ? couvertValue : 0;
@@ -100,11 +101,12 @@ export const CartSidebar = memo(({
               <ShoppingCart size={12} className="inline-icon" /> Comanda
             </label>
             <input
+              ref={comandaInputRef}
               type="text"
               value={comandaNumber}
               onChange={e => setComandaNumber(e.target.value)}
               className="input-premium comanda-input"
-              placeholder="Nº Comanda"
+              placeholder="Nº Comanda (F4)"
               disabled={!!activeOrderId}
               autoFocus
             />
