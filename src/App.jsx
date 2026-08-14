@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Layout } from './components/Layout';
 import { DashboardOverview } from './pages/DashboardOverview';
@@ -20,7 +20,7 @@ function PrivateRoute({ children }) {
 function App() {
   return (
     <ToastProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <HashRouter>
         <Routes>
           <Route path="/" element={<Login />} />
           
@@ -35,7 +35,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </ToastProvider>
   );
 }
