@@ -211,14 +211,15 @@ h1, h2, h3, h4, h5, h6, .heading-font {
 
 .main-header {
   padding: 0.85rem 2rem;
-  background: var(--panel-bg);
-  border-bottom: 2px solid var(--border);
+  background: var(--panel-bg-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1.5px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 10;
-  box-shadow: 0 2px 12px rgba(92,79,63,0.12);
-  background-image: linear-gradient(90deg, rgba(200,150,80,0.04) 0%, transparent 50%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
 .content-area {
@@ -229,9 +230,11 @@ h1, h2, h3, h4, h5, h6, .heading-font {
   position: relative;
 }
 
-/* Glass Panels & Cards */
+/* Glass Panels & Cards Ultra Premium */
 .glass-panel {
-  background: var(--panel-bg);
+  background: var(--panel-bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--card-shadow);
@@ -239,6 +242,12 @@ h1, h2, h3, h4, h5, h6, .heading-font {
   margin-bottom: 1rem;
   position: relative;
   overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.12);
 }
 
 .glass-panel::before {
@@ -249,7 +258,7 @@ h1, h2, h3, h4, h5, h6, .heading-font {
   right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--secondary) 0%, var(--primary) 50%, transparent 100%);
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 /* Common form controls */

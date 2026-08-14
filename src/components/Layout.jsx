@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
+import { calculateCashDrawerBalance } from '../utils/cashMovementUtils';
 import {
   Ticket, Coffee, FileSpreadsheet,
   PackageSearch, LayoutDashboard, LogOut,
-  Sun, Moon, Wifi, Anchor, Sword, BarChart3, QrCode
+  Sun, Moon, Wifi, DollarSign, BarChart3, QrCode
 } from 'lucide-react';
 
 // Inline hook icon para o logo da sidebar
@@ -25,7 +28,7 @@ function LiveClock() {
     return () => clearInterval(t);
   }, []);
   return (
-    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
       {time.toLocaleTimeString('pt-BR')} · {time.toLocaleDateString('pt-BR')}
     </span>
   );
@@ -35,6 +38,19 @@ export function Layout() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-theme'));
+
+  // Live queries para dados globais no Topbar e Sidebar
+  const cashMovements = useLiveQuery(() => db.cash_movements.toArray(), []) || [];
+  const allOrders     = useLiveQuery(() => db.orders.toArray(), []) || [];
+  const allTickets    = useLiveQuery(() => db.tickets.toArray(), []) || [];
+
+  const openOrdersCount = useMemo(() => {
+    return allOrders.filter(o => o.status === 'open').length;
+  }, [allOrders]);
+
+  const { expectedCash } = useMemo(() => {
+    return calculateCashDrawerBalance(cashMovements, allOrders, allTickets);
+  }, [cashMovements, allOrders, allTickets]);
 
   const toggleTheme = () => {
     document.body.classList.toggle('dark-theme');
@@ -51,7 +67,7 @@ export function Layout() {
     { to: '/dashboard/tickets',   icon: <Ticket size={19} />,          label: 'Bilheteria' },
     { to: '/dashboard/checkin',   icon: <QrCode size={19} />,          label: 'Check-in Embarque' },
     { to: '/dashboard/pdv',       icon: <Coffee size={19} />,          label: 'PDV / Bar' },
-    { to: '/dashboard/orders',    icon: <FileSpreadsheet size={19} />, label: 'Comandas' },
+    { to: '/dashboard/orders',    icon: <FileSpreadsheet size={19} />, label: 'Comandas', badge: openOrdersCount },
     { to: '/dashboard/reports',   icon: <BarChart3 size={19} />,       label: 'Relatórios & Caixa' },
     ...(user.role === 'admin'
       ? [{ to: '/dashboard/inventory', icon: <PackageSearch size={19} />, label: 'Estoque' }]
@@ -97,7 +113,17 @@ export function Layout() {
               className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
             >
               {item.icon}
-              <span>{item.label}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {Boolean(item.badge) && item.badge > 0 && (
+                <span style={{
+                  background: 'var(--primary)', color: 'white',
+                  borderRadius: '99px', padding: '0.15rem 0.5rem',
+                  fontSize: '0.7rem', fontWeight: 900,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                }}>
+                  {item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -161,7 +187,27 @@ export function Layout() {
               <Wifi size={12} /> Online
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            {/* Global Cash Drawer Chip */}
+            <div
+              onClick={() => navigate('/dashboard/reports')}
+              title="Clique para acessar o Fechamento de Caixa"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                background: 'var(--panel-bg)', border: '1.5px solid var(--border)',
+                padding: '0.3rem 0.75rem', borderRadius: '99px',
+                cursor: 'pointer', transition: 'all 0.2s',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <DollarSign size={14} style={{ color: 'var(--success)' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Gaveta:</span>
+              <strong style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                {expectedCash.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </strong>
+            </div>
+
             <LiveClock />
             <button onClick={toggleTheme} className="theme-toggle-btn" title={isDark ? 'Modo Claro' : 'Modo Escuro'}>
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
