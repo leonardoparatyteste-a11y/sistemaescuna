@@ -1,5 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=./
-    - /bin/cp -R dist/* $DEPLOYPATH
+    - export DEPLOYPATH=$HOME/public_html/sistemaescuna
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R dist/* $DEPLOYPATH/
+    - /bin/cp dist/.htaccess $DEPLOYPATH/.htaccess
