@@ -171,20 +171,25 @@ export const CartSidebar = memo(({
         )}
 
         {cart.length === 0 ? (
-          <div className="cart-empty-state">
-            <ShoppingCart size={32} className="empty-icon" />
-            <span>Carrinho vazio</span>
+          <div className="cart-empty-state" style={{ padding: '3rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShoppingCart size={28} style={{ color: 'var(--text-light)', opacity: 0.6 }} />
+            </div>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-muted)' }}>Carrinho Vazio</p>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-light)', maxWidth: '200px' }}>
+              Clique em um produto da lista ao lado para adicionar à comanda
+            </span>
           </div>
         ) : (
           <div className="cart-items-list">
             {cart.map(item => {
               const meta = getCatMeta(item.category);
               return (
-                <div key={item.id} className="cart-item">
-                  <span className="item-emoji">{meta.emoji}</span>
-                  <div className="item-details">
-                    <p className="item-name">{item.name}</p>
-                    <p className="item-price" style={{ color: meta.color }}>
+                <div key={item.id} className="cart-item" style={{ background: 'var(--panel-bg-glass)', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '0.85rem' }}>
+                  <span className="item-emoji" style={{ fontSize: '1.6rem' }}>{meta.emoji}</span>
+                  <div className="item-details" style={{ flex: 1, minWidth: 0 }}>
+                    <p className="item-name" style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>{item.name}</p>
+                    <p className="item-price" style={{ color: meta.color, fontWeight: 900, fontSize: '0.95rem', margin: '0.2rem 0' }}>
                       {(item.price * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </p>
                     <input
@@ -194,25 +199,25 @@ export const CartSidebar = memo(({
                       onChange={e => updateItemNotes(item.id, e.target.value)}
                       style={{
                         width: '100%',
-                        fontSize: '0.75rem',
+                        fontSize: '0.78rem',
                         marginTop: '0.35rem',
-                        padding: '0.2rem 0.4rem',
+                        padding: '0.3rem 0.5rem',
                         border: '1.5px solid var(--border)',
-                        borderRadius: '6px',
-                        background: 'var(--panel-bg)',
+                        borderRadius: '8px',
+                        background: 'var(--bg-color)',
                         color: 'var(--text-main)',
                         fontFamily: 'inherit',
                         outline: 'none'
                       }}
                     />
                   </div>
-                  <div className="item-controls">
-                    <button onClick={() => updateQuantity(item.id, -1)} className={`control-btn ${item.quantity === 1 ? 'danger' : ''}`}>
-                      {item.quantity === 1 ? <Trash2 size={13} /> : <Minus size={13} />}
+                  <div className="item-controls" style={{ borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--border)', background: 'var(--bg-color)' }}>
+                    <button onClick={() => updateQuantity(item.id, -1)} className={`control-btn ${item.quantity === 1 ? 'danger' : ''}`} style={{ padding: '0.45rem 0.6rem' }}>
+                      {item.quantity === 1 ? <Trash2 size={14} /> : <Minus size={14} />}
                     </button>
-                    <span className="item-quantity">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 1)} className="control-btn success">
-                      <Plus size={13} />
+                    <span className="item-quantity" style={{ fontWeight: 900, fontSize: '1.05rem', minWidth: '2.5ch', textAlign: 'center' }}>{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.id, 1)} className="control-btn success" style={{ padding: '0.45rem 0.6rem' }}>
+                      <Plus size={14} />
                     </button>
                   </div>
                 </div>
