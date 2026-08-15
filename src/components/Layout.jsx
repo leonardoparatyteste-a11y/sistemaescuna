@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { calculateCashDrawerBalance } from '../utils/cashMovementUtils';
 import {
   Ticket, Coffee, FileSpreadsheet,
   PackageSearch, LayoutDashboard, LogOut,
-  Sun, Moon, Wifi, DollarSign, BarChart3, QrCode
+  Sun, Moon, Wifi, DollarSign, BarChart3, QrCode,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-// Inline hook icon para o logo da sidebar
 function HookIcon({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -36,72 +36,102 @@ function LiveClock() {
 
 export function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-theme'));
+  const [collapsed, setCollapsed] = useState(false);
 
-  // Live queries para dados globais no Topbar e Sidebar
+  // Live queries para dados globais
   const cashMovements = useLiveQuery(() => db.cash_movements.toArray(), []) || [];
   const allOrders     = useLiveQuery(() => db.orders.toArray(), []) || [];
   const allTickets    = useLiveQuery(() => db.tickets.toArray(), []) || [];
 
-  const openOrdersCount = useMemo(() => {
-    return allOrders.filter(o => o.status === 'open').length;
-  }, [allOrders]);
+  const openOrdersCount = useMemo(() => allOrders.filter(o => o.status === 'open').length, [allOrders]);
+  const { expectedCash } = useMemo(() => calculateCashDrawerBalance(cashMovements, allOrders, allTickets), [cashMovements, allOrders, allTickets]);
 
-  const { expectedCash } = useMemo(() => {
-    return calculateCashDrawerBalance(cashMovements, allOrders, allTickets);
-  }, [cashMovements, allOrders, allTickets]);
+  // Fechar sidebar ao navegar em telas pequenas (opcional)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1100px)');
+    if (mq.matches) setCollapsed(true);
+  }, []);
 
-  const toggleTheme = () => {
-    document.body.classList.toggle('dark-theme');
-    setIsDark(prev => !prev);
-  };
+  // Atalho Ctrl+B para toggle sidebar
+  useEffect(() => {
+    const handler = (e) => { if (e.ctrlKey && e.key === 'b') { e.preventDefault(); setCollapsed(p => !p); } };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    navigate('/');
-  };
+  const toggleTheme = () => { document.body.classList.toggle('dark-theme'); setIsDark(p => !p); };
+  const handleLogout = () => { localStorage.removeItem('currentUser'); navigate('/'); };
 
   const navItems = [
-    { to: '/dashboard',           icon: <LayoutDashboard size={19} />, label: 'Visão Geral',  end: true },
-    { to: '/dashboard/tickets',   icon: <Ticket size={19} />,          label: 'Bilheteria' },
-    { to: '/dashboard/checkin',   icon: <QrCode size={19} />,          label: 'Check-in Embarque' },
-    { to: '/dashboard/pdv',       icon: <Coffee size={19} />,          label: 'PDV / Bar' },
-    { to: '/dashboard/orders',    icon: <FileSpreadsheet size={19} />, label: 'Comandas', badge: openOrdersCount },
-    { to: '/dashboard/reports',   icon: <BarChart3 size={19} />,       label: 'Relatórios & Caixa' },
-    ...(user.role === 'admin'
-      ? [{ to: '/dashboard/inventory', icon: <PackageSearch size={19} />, label: 'Estoque' }]
-      : []),
+    { to: '/dashboard',              icon: <LayoutDashboard size={20} />, label: 'Visão Geral',  end: true },
+    { to: '/dashboard/tickets',      icon: <Ticket size={20} />,          label: 'Bilheteria' },
+    { to: '/dashboard/checkin',      icon: <QrCode size={20} />,          label: 'Check-in' },
+    { to: '/dashboard/pdv',          icon: <Coffee size={20} />,          label: 'PDV / Bar' },
+    { to: '/dashboard/orders',       icon: <FileSpreadsheet size={20} />, label: 'Comandas',  badge: openOrdersCount },
+    { to: '/dashboard/reports',      icon: <BarChart3 size={20} />,       label: 'Relatórios & Caixa' },
+    ...(user.role === 'admin' ? [{ to: '/dashboard/inventory', icon: <PackageSearch size={20} />, label: 'Estoque' }] : []),
   ];
 
   return (
     <div className="app-layout">
       {/* Sidebar */}
-      <aside className="sidebar-neo no-print">
+      <aside
+        className="sidebar-neo no-print"
+        style={{
+          width: collapsed ? '72px' : '260px',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}
+      >
         {/* Logo */}
-        <header>
+        <header style={{ justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? '1.5rem 0' : '1.5rem' }}>
           <div style={{
             background: 'linear-gradient(135deg, hsl(350,72%,38%) 0%, hsl(28,85%,36%) 100%)',
-            padding: '0.55rem', borderRadius: '12px',
+            padding: '0.55rem', borderRadius: '12px', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
             boxShadow: '0 4px 16px hsla(350,72%,40%,0.5), inset 0 1px 0 rgba(255,255,255,0.15)',
           }}>
             <HookIcon size={22} />
           </div>
-          <div>
-            <h2 style={{
-              margin: 0, fontWeight: 800, fontSize: '0.9rem',
-              fontFamily: "'Cinzel', serif",
-              color: 'hsl(43,90%,75%)', letterSpacing: '0.8px',
-              textShadow: '0 1px 8px rgba(200,130,40,0.4)',
-            }}>
-              Capitão Gancho
-            </h2>
-            <p style={{ margin: 0, fontSize: '0.62rem', color: 'hsl(35,20%,55%)', letterSpacing: '0.5px', textTransform: 'uppercase', opacity: 0.8 }}>
-              ⚓ Escuna Oficial
-            </p>
-          </div>
+          {!collapsed && (
+            <div style={{ overflow: 'hidden' }}>
+              <h2 style={{
+                margin: 0, fontWeight: 800, fontSize: '0.9rem',
+                fontFamily: "'Cinzel', serif",
+                color: 'hsl(43,90%,75%)', letterSpacing: '0.8px',
+                textShadow: '0 1px 8px rgba(200,130,40,0.4)',
+                whiteSpace: 'nowrap',
+              }}>
+                Capitão Gancho
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.62rem', color: 'hsl(35,20%,55%)', letterSpacing: '0.5px', textTransform: 'uppercase', opacity: 0.8, whiteSpace: 'nowrap' }}>
+                ⚓ Escuna Oficial
+              </p>
+            </div>
+          )}
         </header>
+
+        {/* Toggle Button */}
+        <div style={{ padding: '0 0.5rem 0.5rem', display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end' }}>
+          <button
+            onClick={() => setCollapsed(p => !p)}
+            title={collapsed ? 'Expandir sidebar (Ctrl+B)' : 'Recolher sidebar (Ctrl+B)'}
+            style={{
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px', padding: '0.3rem 0.45rem', cursor: 'pointer',
+              color: 'hsl(35,15%,60%)', display: 'flex', alignItems: 'center',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'hsl(43,90%,65%)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'hsl(35,15%,60%)'; }}
+          >
+            {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          </button>
+        </div>
 
         {/* Nav */}
         <nav>
@@ -111,15 +141,28 @@ export function Layout() {
               to={item.to}
               end={item.end}
               className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+              title={collapsed ? item.label : undefined}
+              style={{ justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? '0.75rem' : '0.75rem 1rem' }}
             >
-              {item.icon}
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {Boolean(item.badge) && item.badge > 0 && (
+              <span style={{ flexShrink: 0 }}>{item.icon}</span>
+              {!collapsed && <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden' }}>{item.label}</span>}
+              {!collapsed && Boolean(item.badge) && item.badge > 0 && (
                 <span style={{
                   background: 'var(--primary)', color: 'white',
                   borderRadius: '99px', padding: '0.15rem 0.5rem',
                   fontSize: '0.7rem', fontWeight: 900,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                }}>
+                  {item.badge}
+                </span>
+              )}
+              {collapsed && Boolean(item.badge) && item.badge > 0 && (
+                <span style={{
+                  position: 'absolute', top: '4px', right: '4px',
+                  background: 'var(--primary)', color: 'white',
+                  borderRadius: '99px', width: '16px', height: '16px',
+                  fontSize: '0.6rem', fontWeight: 900,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {item.badge}
                 </span>
@@ -130,33 +173,47 @@ export function Layout() {
 
         {/* Footer */}
         <div className="footer">
-          {/* Divider */}
           <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, hsl(35,20%,30%), transparent)', margin: '0.5rem 0' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{
-              width: '34px', height: '34px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, hsl(350,72%,38%) 0%, hsl(28,85%,36%) 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: '0.9rem', color: 'hsl(43,90%,80%)', flexShrink: 0,
-              boxShadow: '0 2px 8px hsla(350,72%,40%,0.4)',
-              fontFamily: "'Cinzel', serif",
-            }}>
-              {user.username?.charAt(0).toUpperCase() || 'C'}
+          {!collapsed ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div style={{
+                width: '34px', height: '34px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, hsl(350,72%,38%) 0%, hsl(28,85%,36%) 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: '0.9rem', color: 'hsl(43,90%,80%)', flexShrink: 0,
+                boxShadow: '0 2px 8px hsla(350,72%,40%,0.4)',
+                fontFamily: "'Cinzel', serif",
+              }}>
+                {user.username?.charAt(0).toUpperCase() || 'C'}
+              </div>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: '0.8rem', color: 'hsl(43,90%,75%)', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
+                  {user.username}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.68rem', color: 'hsl(35,15%,55%)', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
+                  {user.role === 'admin' ? '⚓ Capitão' : '🏴‍☠️ Tripulação'}
+                </p>
+              </div>
             </div>
-            <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.8rem', color: 'hsl(43,90%,75%)', textTransform: 'capitalize' }}>
-                {user.username}
-              </p>
-              <p style={{ margin: 0, fontSize: '0.68rem', color: 'hsl(35,15%,55%)', textTransform: 'capitalize' }}>
-                {user.role === 'admin' ? '⚓ Capitão' : '🏴‍☠️ Tripulação'}
-              </p>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div title={user.username} style={{
+                width: '34px', height: '34px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, hsl(350,72%,38%) 0%, hsl(28,85%,36%) 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: '0.9rem', color: 'hsl(43,90%,80%)',
+                fontFamily: "'Cinzel', serif",
+              }}>
+                {user.username?.charAt(0).toUpperCase() || 'C'}
+              </div>
             </div>
-          </div>
+          )}
           <button onClick={handleLogout} title="Sair do sistema"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--sidebar-text)', padding: '0.4rem',
               borderRadius: '6px', display: 'flex', transition: 'all 0.2s',
+              flexShrink: 0,
             }}
             onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--sidebar-text)'}
@@ -215,10 +272,11 @@ export function Layout() {
           </div>
         </header>
 
-        <div className="content-area">
+        <div className="content-area" key={location.pathname} style={{ animation: 'fadeSlideIn 0.25s ease forwards' }}>
           <Outlet />
         </div>
       </main>
     </div>
   );
 }
+
