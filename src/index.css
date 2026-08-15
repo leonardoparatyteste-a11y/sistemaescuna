@@ -943,12 +943,13 @@ body.dark-theme .table-premium tr:hover td {
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.85rem;
   overflow-y: auto;
   padding-bottom: 1rem;
   flex: 1;
   padding-right: 0.5rem;
+  align-content: start;
 }
 
 .pdv-product-card {
@@ -1116,10 +1117,12 @@ body.dark-theme .table-premium tr:hover td {
 .comanda-input {
   text-align: center;
   font-weight: 900;
-  font-size: 1.75rem;
-  padding: 0.75rem;
+  font-size: 1.1rem;
+  padding: 0.55rem 0.6rem;
   border-radius: var(--radius-md);
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
+  min-width: 0;
+  width: 100%;
 }
 
 .cart-items-container {
@@ -1917,9 +1920,10 @@ body.dark-theme .couvert-currency {
 .cart-table-input {
   text-align: center;
   font-weight: 900;
-  font-size: 1.5rem;
-  padding: 0.6rem 0.5rem;
+  font-size: 1.1rem;
+  padding: 0.55rem 0.5rem;
   border-radius: var(--radius-md);
   letter-spacing: 1px;
-  width: 80px;
+  width: 72px;
+  flex-shrink: 0;
 }
